@@ -1,15 +1,13 @@
 import random
 from django.conf import settings
-from django.shortcuts import render
 from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.generics import RetrieveAPIView, GenericAPIView
+from rest_framework.generics import GenericAPIView
 from accounts.serializers import (
     CustomTokenObtainPairSerializer, 
     ResetPasswordConfirmSerializer,
@@ -18,7 +16,8 @@ from accounts.serializers import (
     VerifyEmailSerializer,
     ChangePasswordSerializer
 )
-
+from rest_framework import status
+from datetime import timedelta
 from .models import User, OTP
 
 class LoginView(APIView):
@@ -29,7 +28,7 @@ class RegisterView(GenericAPIView):
     serializer_class = RegisterSerializer
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save(is_active=False)
 
@@ -37,7 +36,7 @@ class RegisterView(GenericAPIView):
             OTP.objects.create(
                 user=user,
                 code=otp,
-                expires_at=timezone.now() + timezone.timedelta(minutes=10)
+                expires_at=timezone.now() + timedelta(minutes=10)
             )
             print(f"Sending OTP {otp} to email {user.email}")
             
@@ -171,7 +170,7 @@ class SendOTPView(GenericAPIView):
         OTP.objects.create(
             user=user,
             code=otp,
-            expires_at=timezone.now() + timezone.timedelta(minutes=10)
+            expires_at=timezone.now() + timedelta(minutes=10)
         )
         print(f"Sending OTP {otp} to email {user.email}")
                 
