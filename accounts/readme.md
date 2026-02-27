@@ -23,3 +23,8 @@
 - Change password
 - Get or update profile
 - Email Support
+
+### Next tasks
+- Update endpoints documentation
+- Add email templates
+- Add which configs are neccessary.

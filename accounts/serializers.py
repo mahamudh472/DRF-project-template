@@ -1,7 +1,21 @@
 from rest_framework import serializers
-from .models import User
+from accounts.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .utils import send_otp_email
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        print("user:", user)
+        print("is_active:", user.is_active)
+        if user and not user.is_active:
+            send_otp_email(user)
+            raise serializers.ValidationError({
+                'detail': 'Account is not active. An OTP has been sent to your email for verification.',
+            })
+
+        return data
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,11 +27,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             full_name=validated_data.get('full_name', ''),
         )
         user.set_password(validated_data['password'])
+        user.is_active = False  # User will be activated after email verification
         user.save()
         
         return user
-
-    
 
 class VerifyEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -27,7 +40,6 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True)
-    
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
@@ -39,21 +51,10 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("New passwords do not match")
         return data
     
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         exclude = ['password']
-    
-
-    
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        if not self.user.is_active:
-            raise serializers.ValidationError("User account is not active.")
-
-        return data
 
